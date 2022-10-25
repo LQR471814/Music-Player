@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+option go_package = "server/api";
+
+enum Drivers {
+    HTTP = 0;
+    YOUTUBE = 1;
+    BANDCAMP = 2;
+    SOUNDCLOUD = 3;
+}
+
+message Source {
+    Drivers driver = 1;
+    string source = 2;
+}

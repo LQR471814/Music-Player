@@ -1,0 +1,47 @@
+syntax = "proto3";
+
+option go_package = "server/api";
+
+enum Format {
+    UNKNOWN = 0;
+	MP3 = 1;
+	M4A = 2;
+	M4B = 3;
+	M4P = 4;
+	ALAC = 5;
+	FLAC = 6;
+	OGG = 7;
+	DSF = 8;
+    WAV = 9;
+}
+
+message Picture {
+    bytes data = 1;
+    string mime = 2;
+    string description = 3;
+}
+
+message Track {
+    string id = 1;
+
+    string title = 2;
+    string artist = 3;
+    string composer = 4;
+
+    int32 year = 5;
+    string genre = 6;
+    int32 disc = 7;
+
+    Format format = 8;
+    string path = 9;
+}
+
+message Album {
+    string id = 1;
+
+    string title = 2;
+    Picture cover = 3;
+    string albumArtist = 4;
+
+    map<string, Track> tracks = 5;
+}

@@ -1,0 +1,10 @@
+node_modules/
+build/
+
+src/proto/
+
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+*.log

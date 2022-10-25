@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+option go_package = "server/api";
+
+import "data.proto";
+import "sources.proto";
+
+enum Action {
+    REMOVE = 0;
+    ADD = 1;
+    OVERRIDE = 2;
+}
+
+service Index {
+    rpc Index(Empty) returns (stream BatchedUpdate);
+    rpc Modify(Update) returns (Status);
+    rpc AddFrom(Source) returns (Status);
+}
+
+message Empty {}
+
+message Status {
+    bool ok = 1;
+    string description = 2;
+}
+
+message UpdateTrack {
+    Track track = 1;
+    string albumId = 2;
+}
+
+message Update {
+    Action action = 1;
+    oneof payload {
+        UpdateTrack track = 2;
+        Album album = 3;
+    }
+}
+
+message BatchedUpdate {
+    repeated Update updates = 1;
+}
