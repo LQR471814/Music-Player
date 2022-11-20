@@ -1,12 +1,8 @@
 package main
 
 import (
-	"encoding/gob"
 	"io/ioutil"
 	"mime"
-	"music-player/server/api"
-	"music-player/server/env"
-	"music-player/server/logging"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -16,9 +12,14 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/LQR471814/music-player/server/api"
+	"github.com/LQR471814/music-player/server/env"
+	"github.com/LQR471814/music-player/server/index"
+	"github.com/LQR471814/music-player/server/logging"
+	"github.com/LQR471814/music-player/server/utils"
+
 	"github.com/dhowden/tag"
 	"github.com/google/uuid"
-	"google.golang.org/protobuf/proto"
 )
 
 var extToFormat = map[string]api.Format{
@@ -50,6 +51,9 @@ func init() {
 
 func RemoveExt(filename string) string {
 	split := strings.Split(filename, ".")
+	if len(split) == 1 {
+		return split[0]
+	}
 	return strings.Join(split[:len(split)-1], ".")
 }
 
@@ -92,13 +96,14 @@ func InferTrack(fileInfo os.FileInfo, t *api.Track) {
 }
 
 func InferAlbum(fileInfo os.FileInfo, a *api.Album) {
-	if strings.Contains(fileInfo.Name(), "-") {
-		segments := strings.Split(fileInfo.Name(), "-")
+	filename := RemoveExt(fileInfo.Name())
+	if strings.Contains(filename, "-") {
+		segments := strings.Split(filename, "-")
 		a.Title = strings.Trim(strings.Join(segments[1:], "-"), " ")
 		a.AlbumArtist = strings.Trim(segments[0], " ")
 		return
 	}
-	a.Title = fileInfo.Name()
+	a.Title = filename
 }
 
 func InferCover(path string, a *api.Album) {
@@ -131,13 +136,7 @@ func InferCover(path string, a *api.Album) {
 	}
 }
 
-func HandleTrack(album *api.Album, path string) {
-	err := syscall.Access(path, syscall.O_RDWR)
-	if err != nil {
-		logging.Warn.Println(path, err)
-		return
-	}
-
+func IsAudio(path string) bool {
 	ext := filepath.Ext(path)
 	valid := false
 	for k := range extToFormat {
@@ -145,7 +144,17 @@ func HandleTrack(album *api.Album, path string) {
 			valid = true
 		}
 	}
-	if !valid {
+	return valid
+}
+
+func HandleTrack(album *api.Album, path string) {
+	err := syscall.Access(path, syscall.O_RDWR)
+	if err != nil {
+		logging.Warn.Println(path, err)
+		return
+	}
+
+	if !IsAudio(path) {
 		return
 	}
 
@@ -160,9 +169,10 @@ func HandleTrack(album *api.Album, path string) {
 		return
 	}
 
+	withoutHead := strings.Split(path, "/")[1:]
 	track := &api.Track{
 		Id:   uuid.NewString(),
-		Path: path,
+		Path: filepath.Join(withoutHead...),
 	}
 	InferTrack(fileInfo, track)
 
@@ -173,8 +183,8 @@ func HandleTrack(album *api.Album, path string) {
 	}
 
 	if m != nil {
-		album.Title = Fallback([]string{m.Album(), album.Title})
-		album.AlbumArtist = Fallback([]string{m.AlbumArtist(), album.AlbumArtist})
+		album.Title = utils.Fallback([]string{m.Album(), album.Title})
+		album.AlbumArtist = utils.Fallback([]string{m.AlbumArtist(), album.AlbumArtist})
 		if m.Picture() != nil && len(m.Picture().Data) > 0 {
 			album.Cover = &api.Picture{
 				Data:        m.Picture().Data,
@@ -184,11 +194,11 @@ func HandleTrack(album *api.Album, path string) {
 		}
 		disc, _ := m.Disc()
 
-		track.Artist = Fallback([]string{m.Artist(), track.Artist})
-		track.Composer = Fallback([]string{m.Composer(), track.Composer})
-		track.Genre = Fallback([]string{m.Genre(), track.Genre})
-		track.Year = Fallback([]int32{int32(m.Year()), track.Year})
-		track.Disc = Fallback([]int32{int32(disc), track.Disc})
+		track.Artist = utils.Fallback([]string{m.Artist(), track.Artist})
+		track.Composer = utils.Fallback([]string{m.Composer(), track.Composer})
+		track.Genre = utils.Fallback([]string{m.Genre(), track.Genre})
+		track.Year = utils.Fallback([]int32{int32(m.Year()), track.Year})
+		track.Disc = utils.Fallback([]int32{int32(disc), track.Disc})
 	}
 	album.Tracks[track.Id] = track
 }
@@ -202,6 +212,10 @@ func PullAlbums() ([]*api.Album, error) {
 	}
 	for _, fileInfo := range dirs {
 		path := filepath.Join(env.Options.AudioDirectory, fileInfo.Name())
+
+		if !fileInfo.IsDir() && !IsAudio(fileInfo.Name()) {
+			continue
+		}
 
 		album := &api.Album{
 			Id:     uuid.NewString(),
@@ -234,8 +248,8 @@ func IndexLocation() string {
 	return filepath.Join(env.Options.AudioDirectory, env.Options.IndexName)
 }
 
-type Index struct {
-	Albums   map[string]*api.Album
+type AlbumIndex struct {
+	Index    *index.Index[*api.Album]
 	Channels []chan *api.BatchedUpdate
 
 	modifications []*api.Update
@@ -243,31 +257,28 @@ type Index struct {
 	updateLock    sync.Mutex
 }
 
-func NewIndex() *Index {
-	index := &Index{
-		Albums:        make(map[string]*api.Album),
+func NewIndex() *AlbumIndex {
+	return &AlbumIndex{
+		Index: index.NewProtoIndex(
+			filepath.Join(env.Options.AudioDirectory, "index.pb"),
+			func() (map[string]*api.Album, error) {
+				albums := map[string]*api.Album{}
+				pulled, err := PullAlbums()
+				if err != nil {
+					return nil, err
+				}
+				for _, a := range pulled {
+					albums[a.Id] = a
+				}
+				return albums, nil
+			},
+		),
 		Channels:      make([]chan *api.BatchedUpdate, 0),
 		modifications: make([]*api.Update, 0),
 	}
-
-	_, err := os.Stat(IndexLocation())
-	if err == nil {
-		index.Load()
-	} else {
-		albums, err := PullAlbums()
-		if err != nil {
-			logging.Error.Fatal("failed to read albums:", err)
-		}
-		for _, a := range albums {
-			index.Albums[a.Id] = a
-		}
-		index.Store()
-	}
-
-	return index
 }
 
-func (i *Index) Update(update *api.Update) {
+func (i *AlbumIndex) Update(update *api.Update) {
 	i.updateLock.Lock()
 
 	i.modifications = append(i.modifications, update)
@@ -277,11 +288,11 @@ func (i *Index) Update(update *api.Update) {
 		switch update.Action {
 		case api.Action_ADD:
 			album.Id = uuid.NewString()
-			i.Albums[album.Id] = album
+			i.Index.Values[album.Id] = album
 		case api.Action_REMOVE:
-			delete(i.Albums, album.Id)
+			delete(i.Index.Values, album.Id)
 		case api.Action_OVERRIDE:
-			i.Albums[album.Id] = album
+			i.Index.Values[album.Id] = album
 		}
 	case *api.Update_Track:
 		updateTrack := update.Payload.(*api.Update_Track).Track
@@ -290,11 +301,11 @@ func (i *Index) Update(update *api.Update) {
 		switch update.Action {
 		case api.Action_ADD:
 			track.Id = uuid.NewString()
-			i.Albums[albumId].Tracks[track.Id] = track
+			i.Index.Values[albumId].Tracks[track.Id] = track
 		case api.Action_REMOVE:
-			delete(i.Albums[albumId].Tracks, track.Id)
+			delete(i.Index.Values[albumId].Tracks, track.Id)
 		case api.Action_OVERRIDE:
-			i.Albums[albumId].Tracks[track.Id] = track
+			i.Index.Values[albumId].Tracks[track.Id] = track
 		}
 	}
 
@@ -307,66 +318,18 @@ func (i *Index) Update(update *api.Update) {
 			select {
 			case <-i.cancelUpdate:
 				return
-			case <-Sleep(time.Second * 10):
+			case <-utils.Sleep(time.Second * 10):
 				for _, c := range i.Channels {
-					c <- &api.BatchedUpdate{Updates: i.modifications}
+					c <- &api.BatchedUpdate{
+						Updates: i.modifications,
+						Status:  &api.Status{Ok: true},
+					}
 				}
-				i.Store()
+				i.Index.Store()
 				return
 			}
 		}
 	}()
 
 	i.updateLock.Unlock()
-}
-
-func (i *Index) Load() {
-	f, err := os.Open(IndexLocation())
-	if err != nil {
-		logging.Error.Println("could not open index:", err)
-		return
-	}
-
-	decoded := map[string][]byte{}
-
-	decoder := gob.NewDecoder(f)
-	err = decoder.Decode(&decoded)
-	if err != nil {
-		logging.Error.Println("could not serialize index:", err)
-	}
-
-	for id, serialized := range decoded {
-		album := &api.Album{}
-		err := proto.Unmarshal(serialized, album)
-		if err != nil {
-			logging.Error.Println("error while deserializing album:", id, err)
-		}
-		i.Albums[id] = album
-	}
-}
-
-func (i *Index) Store() {
-	i.updateLock.Lock()
-	serialize := map[string][]byte{}
-	for _, a := range i.Albums {
-		bytes, err := proto.Marshal(a)
-		if err != nil {
-			logging.Error.Println("error while serializing album:", a.Id, err)
-			continue
-		}
-		serialize[a.Id] = bytes
-	}
-	i.updateLock.Unlock()
-
-	f, err := os.Create(IndexLocation())
-	if err != nil {
-		logging.Error.Println("could not create index:", err)
-		return
-	}
-
-	encoder := gob.NewEncoder(f)
-	err = encoder.Encode(serialize)
-	if err != nil {
-		logging.Error.Println("could not serialize index:", err)
-	}
 }

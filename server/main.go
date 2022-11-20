@@ -2,26 +2,28 @@ package main
 
 import (
 	"log"
-	"music-player/server/api"
-	"music-player/server/env"
 	"net"
 	"net/http"
 
+	"github.com/LQR471814/music-player/server/api"
+	"github.com/LQR471814/music-player/server/env"
+
 	"github.com/improbable-eng/grpc-web/go/grpcweb"
+	"github.com/rs/cors"
 	"google.golang.org/grpc"
 )
 
 func main() {
-	listener, err := net.Listen("tcp", ":8000")
+	listener, err := net.Listen("tcp", env.Options.Address)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	grpcServer := grpc.NewServer()
-	indexServer := &IndexServer{
-		Store: NewIndex(),
+	apiServer := &APIServer{
+		AlbumStore: NewIndex(),
 	}
-	api.RegisterIndexServer(grpcServer, indexServer)
+	api.RegisterAPIServer(grpcServer, apiServer)
 
 	wrappedServer := grpcweb.WrapServer(
 		grpcServer,
@@ -30,19 +32,24 @@ func main() {
 		}),
 	)
 
-	log.Printf("Serving on %s...", env.Options.Address)
-	http.Serve(listener, SplitGRPCTraffic(
-		http.FileServer(http.Dir(env.Options.AudioDirectory)),
-		wrappedServer,
-	))
 	// albums, err := PullAlbums()
 	// if err != nil {
 	// 	log.Fatal(err)
 	// }
-	// for _, a := range albums {
-	// 	log.Printf("%s - %s ===================\n", a.AlbumArtist, a.Title)
+	// for i, a := range albums {
+	// 	log.Printf("%d. %s - %s ===================\n", i, a.AlbumArtist, a.Title)
 	// 	for _, t := range a.Tracks {
 	// 		log.Printf("\t%d. %s - %s\n", t.Disc, t.Artist, t.Title)
 	// 	}
 	// }
+
+	log.Printf("Serving on %s...", listener.Addr().String())
+	// http.Serve(listener, cors.AllowAll().Handler(SplitGRPCTraffic(
+	// 	http.FileServer(http.Dir(env.Options.AudioDirectory)),
+	// 	wrappedServer,
+	// )))
+	http.ServeTLS(listener, cors.AllowAll().Handler(SplitGRPCTraffic(
+		http.FileServer(http.Dir(env.Options.AudioDirectory)),
+		wrappedServer,
+	)), "host-crt.pem", "host-key.pem")
 }

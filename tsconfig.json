@@ -4,17 +4,28 @@
     "noImplicitAny": true,
     "baseUrl": "src",
     "paths": {
-      "~/*": ["*"]
-    }
+      "~/*": [
+        "*"
+      ]
+    },
+    "target": "ES6",
+    "lib": [
+      "ESNext"
+    ],
+    "module": "ESNext",
+    // "moduleResolution": "NodeNext",
+    "esModuleInterop": true
   },
   "extends": "@tsconfig/svelte/tsconfig.json",
   "include": [
-    "src/**/*"
+    "src/**/*",
+    "plugins/**/*",
+    "vite.config.ts",
+    "theme"
   ],
   "exclude": [
     "node_modules/*",
-    "__sapper__/*",
     "public/*",
-    "src/~/proto/*"
+    "src/proto/*"
   ]
 }

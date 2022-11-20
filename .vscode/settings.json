@@ -1,5 +1,9 @@
 {
     "protoc": {
         "options": ["-I", "proto"]
-    }
+    },
+    "explorer.fileNesting.patterns": {
+        "*.ts": "${capture}.js"
+    },
+    "explorer.fileNesting.enabled": true
 }

@@ -45,3 +45,10 @@ message Album {
 
     map<string, Track> tracks = 5;
 }
+
+message Bounds {
+    int32 x1 = 1;
+    int32 x2 = 2;
+    int32 y1 = 3;
+    int32 y2 = 4;
+}

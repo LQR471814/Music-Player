@@ -5,24 +5,24 @@ option go_package = "server/api";
 import "data.proto";
 import "sources.proto";
 
+message Status {
+    bool ok = 1;
+    string description = 2;
+}
+
 enum Action {
-    REMOVE = 0;
-    ADD = 1;
+    ADD = 0;
+    REMOVE = 1;
     OVERRIDE = 2;
 }
 
-service Index {
+service API {
     rpc Index(Empty) returns (stream BatchedUpdate);
     rpc Modify(Update) returns (Status);
     rpc AddFrom(Source) returns (Status);
 }
 
 message Empty {}
-
-message Status {
-    bool ok = 1;
-    string description = 2;
-}
 
 message UpdateTrack {
     Track track = 1;
@@ -38,5 +38,6 @@ message Update {
 }
 
 message BatchedUpdate {
-    repeated Update updates = 1;
+    Status status = 1;
+    repeated Update updates = 2;
 }

@@ -1,5 +1,12 @@
+SHELL = /bin/bash
+
 PROTO = $(wildcard proto/*.proto)
 NPX = pnpm exec
+CRT_NAME = host
+SERVER_IP = 192.168.1.178
+
+public/wasm:
+	mkdir public/wasm
 
 server/api:
 	mkdir server/api
@@ -14,3 +21,4 @@ protobuf: src/proto server/api
 		--proto_path proto \
 		$(PROTO)
 	protoc -I=proto --go_out=. --go-grpc_out=. $(PROTO)
+	node scripts/patchproto.js src/proto

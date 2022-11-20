@@ -1,6 +1,8 @@
-package main
+package utils
 
 import (
+	"fmt"
+	"image/color"
 	"reflect"
 	"strings"
 	"time"
@@ -65,4 +67,29 @@ func Remove[T any](slice []T, target func(T) bool) []T {
 		}
 	}
 	return values
+}
+
+func ColorToString(c color.Color) string {
+	r, g, b, a := c.RGBA()
+	return fmt.Sprintf(
+		"rgba(%d, %d, %d, %d)",
+		int(float64(r)/0xffff*256),
+		int(float64(g)/0xffff*256),
+		int(float64(b)/0xffff*256),
+		int(float64(a)/0xffff*256),
+	)
+}
+
+func Reverse[T any](slice []T) []T {
+	values := make([]T, len(slice))
+	for i, v := range slice {
+		values[len(slice)-1-i] = v
+	}
+	return values
+}
+
+func InitializePointerType[T any]() T {
+	var value T
+	unwrapped := reflect.TypeOf(value).Elem()
+	return reflect.New(unwrapped).Interface().(T)
 }

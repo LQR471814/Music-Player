@@ -1,7 +1,7 @@
 node_modules/
 build/
 
-src/proto/
+src/proto/*.ts
 
 package-lock.json
 yarn.lock

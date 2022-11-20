@@ -1,3 +1,106 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer components {
+  .interactive {
+    @apply transition-all ease-in-out border border-primary bg-primary
+      backdrop-blur-md shadow-xl hover:scale-[102%] active:scale-[98%];
+  }
+
+  .ease-out-backwards {
+    transition-timing-function: cubic-bezier(.18, .89, .32, 1.28);
+  }
+
+  .overlay {
+    @apply top-0 left-0 w-full h-full;
+  }
+}
+
+@layer utilities {
+  .center-x {
+    left: 50%;
+    transform: translateX(-50%);
+  }
+  .center-y {
+    top: 50%;
+    transform: translateY(-50%);
+  }
+
+  .border-opacity-var {
+    --tw-color-opacity: var(--border-opacity);
+  }
+  .bg-opacity-var {
+    --tw-color-opacity: var(--bg-opacity);
+  }
+}
+
+html {
+  height: calc(100% - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+
+  background: var(--wallpaper);
+  background-size: cover;
+  background-position: center center;
+
+  color: rgb(var(--primary));
+  fill: rgb(var(--primary));
+}
+
+body {
+  margin: 0;
+  height: 100%;
+}
+
+.svg-shadow {
+  filter: drop-shadow(0px 2px 4px rgba(0, 0, 0, 0.4));
+}
+
+* {
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  @apply font-poppins;
+}
+
+@font-face {
+  font-family: "Inter Var";
+  src: url("../public/assets/Inter-Var.woff");
+}
+
+@font-face {
+  font-family: "Poppins";
+  src: url("../public/assets/Poppins/Poppins-Regular.woff");
+  font-weight: normal;
+}
+
+@font-face {
+  font-family: "Poppins";
+  src: url("../public/assets/Poppins/Poppins-Bold.woff");
+  font-weight: bold;
+}
+
+@font-face {
+  font-family: "Poppins";
+  src: url("../public/assets/Poppins/Poppins-SemiBold.woff");
+  font-weight: 600;
+}
+
+@font-face {
+  font-family: "Poppins";
+  src: url("../public/assets/Poppins/Poppins-Italic.woff");
+  font-weight: normal;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: "Poppins";
+  src: url("../public/assets/Poppins/Poppins-BoldItalic.woff");
+  font-weight: bold;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: "Poppins";
+  src: url("../public/assets/Poppins/Poppins-SemiBoldItalic.woff");
+  font-weight: 600;
+  font-style: italic;
+}

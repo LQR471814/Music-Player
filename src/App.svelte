@@ -1,31 +1,68 @@
 <script lang="ts">
-import { IndexClient } from "./proto/api.client";
-import { GrpcWebFetchTransport } from "@protobuf-ts/grpcweb-transport"
-import type { Album } from "./proto/data";
-import { Empty } from "./proto/api";
+import { GrpcWebFetchTransport } from "@protobuf-ts/grpcweb-transport";
+import { APIClient } from "~/proto/api.client";
+import { Empty } from "~/proto/api";
+import { apiLocation } from "./common/api";
 
-let albums: Album[] = []
+import { store } from "./store/state";
+import { setContext } from "svelte";
+import { iconKey, Context as IconContext } from "./icons/icon-context";
+
+import Library from "~/components/Library.svelte";
+import { inferTheme, light, loadTheme } from "./store/theme";
+import Playlist from "./components/Playlist.svelte";
+import Player from "./components/Player.svelte";
+import AlbumOverlay from "./components/AlbumOverlay.svelte";
+
+import DynamicHeader, {
+  Col as Column,
+  Head as Header,
+} from "@web-std/wrappers/src/DynamicHeader.svelte";
+import { db } from "./store/db";
+
+setContext<IconContext>(iconKey, {
+  className: "w-14 h-14 svg-shadow",
+});
 
 const transport = new GrpcWebFetchTransport({
-  baseUrl: "http://localhost:8000",
+  baseUrl: apiLocation,
 });
-const client = new IndexClient(transport);
+
+loadTheme(light)
+db.loadDefaultWallpapers().then(() => {
+  inferTheme(1).then((t) => {
+    loadTheme(t);
+  });
+});
+
+const client = new APIClient(transport);
 client.index(Empty).responses.onMessage((m) => {
-  for (const update of m.updates) {
-    switch (update.payload.oneofKind) {
-      case "album":
-        const a = update.payload.album
-        console.info(`album: ${a.albumArtist} - ${a.title} | ${Object.keys(a.tracks).length} tracks`)
-    }
-  }
-})
+  store.actions.batchedUpdates(m);
+});
+
+const registration = navigator.serviceWorker.register("./workers/sw", {
+  scope: "./workers/sw",
+});
+
+const playlistEmpty = store.select((s) => s.playlist.tracks.length === 0);
 </script>
 
-<main class="flex h-full w-full items-center justify-center" />
-
-<style>
-:global(body) {
-  margin: 0;
-  height: 100vh;
-}
-</style>
+<main class="w-full h-full">
+  <DynamicHeader>
+    {#if !$playlistEmpty}
+      <Column className="">
+        <Playlist />
+      </Column>
+    {/if}
+    <Column>
+      <Library />
+    </Column>
+    <Header
+      className="z-20 transition-all border-b border-transparent"
+      coverClass="backdrop-blur-sm border-primary"
+    >
+      <Player />
+    </Header>
+  </DynamicHeader>
+  <AlbumOverlay />
+</main>
