@@ -28,7 +28,7 @@ const transport = new GrpcWebFetchTransport({
   baseUrl: apiLocation,
 });
 
-loadTheme(light)
+loadTheme(light);
 db.loadDefaultWallpapers().then(() => {
   inferTheme(1).then((t) => {
     loadTheme(t);
@@ -40,9 +40,9 @@ client.index(Empty).responses.onMessage((m) => {
   store.actions.batchedUpdates(m);
 });
 
-const registration = navigator.serviceWorker.register("./workers/sw", {
-  scope: "./workers/sw",
-});
+// const registration = navigator.serviceWorker.register("./workers/sw", {
+//   scope: "./workers/sw",
+// });
 
 const playlistEmpty = store.select((s) => s.playlist.tracks.length === 0);
 </script>
@@ -53,13 +53,16 @@ const playlistEmpty = store.select((s) => s.playlist.tracks.length === 0);
       <Column className="">
         <Playlist />
       </Column>
+      <Column className="">
+        <div class="w-0 h-screen border-l border-primary-clear" />
+      </Column>
     {/if}
     <Column>
       <Library />
     </Column>
     <Header
       className="z-20 transition-all border-b border-transparent"
-      coverClass="backdrop-blur-sm border-primary"
+      coverClass="backdrop-blur-sm border-primary-clear"
     >
       <Player />
     </Header>

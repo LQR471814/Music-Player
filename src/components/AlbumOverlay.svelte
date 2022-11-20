@@ -15,8 +15,8 @@ import PlayLine from "~/icons/PlayLine.svelte";
 import PlayListAddLine from "~/icons/PlayListAddLine.svelte";
 import { fly } from "svelte/transition";
 import { classList } from "@web-std/common/src/general";
-import { clickOutside } from "@web-std/common/src/actions";
-import { useClose } from "~/../web-std/packages/svelte-common/src/hooks";
+import { clickOutside } from "@web-std/svelte-common/src/actions";
+import { useClose } from "@web-std/svelte-common/src/hooks";
 
 const selectedAlbum = store.select(currentAlbumSelector);
 
@@ -58,7 +58,7 @@ useClose(() => {
       <div
         class={classList(
           "flex flex-col items-end gap-8 backdrop-blur-md p-8 rounded-3xl",
-          "border border-primary border-opacity-20"
+          "border border-primary-clear border-opacity-20"
         )}
         transition:fly={{ y: 20 }}
       >
@@ -68,6 +68,7 @@ useClose(() => {
           out:send={{ key: coverKey }}
         >
           <Menu
+            side="left"
             options={[
               {
                 title: "Upload",

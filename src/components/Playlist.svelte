@@ -10,7 +10,11 @@ const playlist = store.select((s) => s.playlist);
 let selected: number | undefined;
 </script>
 
-<div class={$playlist.tracks.length > 0 ? "sm:w-[360px] xl:w-sm p-8" : ""}>
+<div
+  class={$playlist.tracks.length > 0
+    ? "sm:w-[360px] xl:w-sm p-8 border-primary"
+    : ""}
+>
   <div class="flex flex-col gap-4">
     {#each $playlist.tracks as t, i}
       <Menu

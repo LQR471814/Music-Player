@@ -136,8 +136,8 @@ export const inferTheme = async (wallpaperId: number): Promise<Theme> => {
 
     return {
         colors: {
-            primary: colorToString(colors[1]),
-            secondary: colorToString(colors[1]),
+            primary: colorToString(colors[2]),
+            secondary: colorToString(colors[2]),
             background: colorToString(colors[0]),
         },
         wallpaper: {

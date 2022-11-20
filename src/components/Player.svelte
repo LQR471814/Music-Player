@@ -9,10 +9,12 @@ import { Label, Range } from "@web-std/form";
 import type { Track } from "~/proto/data";
 import { store, State } from "~/store/state";
 import PauseLine from "~/icons/PauseLine.svelte";
-import { useKey } from "@web-std/svelte-common/src/hooks";
 import { apiLocation } from "~/common/api";
-import { onDestroy } from "svelte";
+
+import { controlPlay } from "@web-std/svelte-common/src/actions";
+import { useKey } from "@web-std/svelte-common/src/hooks";
 import { classList } from "@web-std/common/src/general";
+import { imageStore } from "@web-std/store/src/image";
 
 const selectTrack: (s: State) => (Track & { album: string }) | undefined = (
   s
@@ -32,11 +34,6 @@ const playing = store.select((s) => s.playlist.playing);
 const blurred = store.select((s) => s.playerBlurred);
 
 const changeTrack = (position: number) => {
-  // setTimeout(() => {
-  //   if (_player) {
-  //     _player.play();
-  //   }
-  // }, 100);
   if (position >= $playlist.tracks.length) {
     store.actions.playTrack(0);
     return;
@@ -44,27 +41,44 @@ const changeTrack = (position: number) => {
   store.actions.playTrack(position);
 };
 
-//TODO: Use media session API to add metadata and next/back buttons to player
-//https://developer.mozilla.org/en-US/docs/Web/API/Media_Session_API
+navigator.mediaSession.setActionHandler("play", () => {
+  store.actions.togglePlaying(true);
+});
+navigator.mediaSession.setActionHandler("pause", () => {
+  store.actions.togglePlaying(false);
+});
+navigator.mediaSession.setActionHandler("nexttrack", () => {
+  changeTrack($playlist.position + 1)
+});
+navigator.mediaSession.setActionHandler("previoustrack", () => {
+  changeTrack($playlist.position - 1)
+});
 
 useKey(" ", () => store.actions.togglePlaying());
 useKey("P", () => changeTrack($playlist.position - 1));
 useKey("N", () => changeTrack($playlist.position + 1));
 
+
 let _elapsed = 0;
 let _player: HTMLAudioElement;
-let _playing = $playing;
-
-const unsubscribe = playing.subscribe((p) => {
-  _playing = p;
-});
 
 $: {
   if (_player) {
-    if ($playing && _player.paused) {
-      _player.play();
-    } else {
-      _player.pause();
+    if ($playing) {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: $track?.title ?? "no title",
+        album: $album?.title ?? "unknown album",
+        artist: $track?.artist ?? "unknown artist",
+        artwork: $album?.cover
+          ? [
+              {
+                src: imageStore.fetch($album.cover.data),
+                sizes: "96x96",
+                type: "image/jpeg",
+              },
+            ]
+          : undefined,
+      });
     }
     _player.ontimeupdate = () => {
       if (!_player || _player.seeking) return;
@@ -74,27 +88,20 @@ $: {
       if (!_player) return;
       changeTrack($playlist.position + 1);
     };
-    _player.onplay = () => (_playing = true);
-    _player.onpause = () => (_playing = false);
   }
 }
-
-onDestroy(() => {
-  unsubscribe();
-});
 </script>
 
 {#if $track}
   <audio
     bind:this={_player}
-    on:load={() => {
-      _player.play();
-    }}
+    autoplay
     src={(() => {
       const url = new URL(apiLocation);
       url.pathname = $track.path;
       return url.toString();
     })()}
+    use:controlPlay={{ store: playing }}
   />
 {/if}
 
@@ -126,15 +133,13 @@ onDestroy(() => {
       disabled={!$album}
       showLabel={false}
       outlineOpacity={0.3}
-      trackClass="bg-transparent backdrop-blur-md border border-primary"
+      trackClass="bg-transparent backdrop-blur-md border border-primary-clear"
       trackProgressClass="bg-primary h-[6px]"
       thumbClass="bg-primary border-none outline-primary"
       bind:value={_elapsed}
       on:dragEnd={(value) => {
         if (!_player) return;
-        console.log("seeked");
         _player.fastSeek(value.detail.value * _player.duration);
-        _player.pause();
       }}
     />
     <div class="flex gap-4 justify-center">
@@ -145,12 +150,10 @@ onDestroy(() => {
         <SkipBackLine width={24} height={24} />
       </IconButton>
       <IconButton
-        on:click={() => {
-          store.actions.togglePlaying();
-        }}
+        on:click={() => store.actions.togglePlaying()}
         disabled={$playlist.tracks.length === 0}
       >
-        {#if !_playing}
+        {#if !$playing}
           <PlayLine width={24} height={24} />
         {:else}
           <PauseLine width={24} height={24} />

@@ -15,7 +15,7 @@ to generate such files, you should look into self signing with `openssl` or `xca
 
 ### roadmap
 
-- [ ] dynamic themes on the client
+- [x] dynamic themes on the client
 - [ ] remove player jankiness
 - [ ] adaptive layouts
     - [x] desktop layouts

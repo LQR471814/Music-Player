@@ -36,7 +36,7 @@ module.exports = {
       for (const variant in variants) {
         const map = {}
         for (const color of colors) {
-          map[`.${variant}-${color}`] = {
+          map[`.${variant}-${color}-clear`] = {
             [`${variants[variant]}-color`]: `rgba(var(--${color}), var(--${variant}-opacity))`,
           }
         }

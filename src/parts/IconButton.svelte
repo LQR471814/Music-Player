@@ -14,7 +14,7 @@ export let disabled = false;
   class={twMerge(
     "interactive p-2 rounded-full",
     disabled
-      ? "hover:scale-100 !bg-background !border-background"
+      ? "hover:scale-100 !bg-background-clear !border-background-clear"
       : "hover:scale-110 active:scale-90",
     className
   )}

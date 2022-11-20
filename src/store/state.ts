@@ -75,7 +75,11 @@ export const store = fluxStore(initialState, {
         s.playlist.playing = false
         s.playlist.tracks = withoutElement(s.playlist.tracks, track)
     },
-    togglePlaying: (s) => {
+    togglePlaying: (s, playing?: boolean) => {
+        if (playing) {
+            s.playlist.playing = playing
+            return
+        }
         s.playlist.playing = !s.playlist.playing
     },
     overridePlaylist: (s, album: string) => {

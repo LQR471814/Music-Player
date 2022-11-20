@@ -4,7 +4,7 @@
 
 @layer components {
   .interactive {
-    @apply transition-all ease-in-out border border-primary bg-primary
+    @apply transition-all ease-in-out border border-primary-clear bg-primary-clear
       backdrop-blur-md shadow-xl hover:scale-[102%] active:scale-[98%];
   }
 
