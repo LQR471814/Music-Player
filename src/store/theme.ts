@@ -1,7 +1,8 @@
-import { imageStore } from "@web-std/store/src/image"
-import { db } from "./db";
 import ColorThief, { RGBColor } from "colorthief"
 import { fit, height, position, processImage, width } from "@web-std/common/src/images";
+
+import { db } from "./db";
+import { imageStore } from "@web-std/store/src/image"
 import { parseToRgba } from "color2k"
 
 type Theme = {
@@ -26,7 +27,7 @@ const colorToString = (color: RGBColor) => {
 
 export const effects: Theme["effects"] = {
     backgroundOpacity: 0.1,
-    borderOpacity: 0.3,
+    borderOpacity: 0.2,
 }
 
 export const light: Theme = {
@@ -37,7 +38,7 @@ export const light: Theme = {
     colors: {
         primary: "black",
         secondary: "black",
-        background: "#e5e7eb",
+        background: "gray",
     },
     effects
 }
@@ -45,12 +46,12 @@ export const light: Theme = {
 export const dark: Theme = {
     wallpaper: {
         type: "color",
-        content: "gray"
+        content: "#363636"
     },
     colors: {
         primary: "white",
-        secondary: "#7ba7c4",
-        background: "#e5e7eb",
+        secondary: "white",
+        background: "#616161",
     },
     effects
 }
@@ -86,6 +87,11 @@ export const loadTheme = (theme: Theme) => {
             `url(${theme.wallpaper.content})` :
             theme.wallpaper.content
     )
+
+    const themeColor = document.querySelector("meta[name='theme-color']")
+    if (themeColor) {
+        (themeColor as HTMLMetaElement).content = theme.colors.background
+    }
 }
 
 export const inferTheme = async (wallpaperId: number): Promise<Theme> => {
@@ -97,27 +103,29 @@ export const inferTheme = async (wallpaperId: number): Promise<Theme> => {
     const fullsizeURL = imageStore.fetch(wallpaper.fullsize)
     const referenceURL = await processImage(
         wallpaper.paletteReference,
-        ({ context, image, canvas }) => {
-            const fitted = position([0.5, 0.5], fit("contain", {
-                min: [0, 0],
-                max: [window.innerWidth, window.innerHeight],
-            }, {
-                min: [0, 0],
-                max: [image.width, image.height],
-            }), {
-                min: [0, 0],
-                max: [image.width, image.height]
-            })
-            const w = width(fitted)
-            const h = height(fitted)
+        [
+            ({ context, image, canvas }) => {
+                const fitted = position([0.5, 0.5], fit("contain", {
+                    min: [0, 0],
+                    max: [window.innerWidth, window.innerHeight],
+                }, {
+                    min: [0, 0],
+                    max: [image.width, image.height],
+                }), {
+                    min: [0, 0],
+                    max: [image.width, image.height]
+                })
+                const w = width(fitted)
+                const h = height(fitted)
 
-            canvas.width = w
-            canvas.height = h
-            context.drawImage(
-                image, fitted.min[0], fitted.min[1], w, h,
-                0, 0, w, h
-            )
-        }
+                canvas.width = w
+                canvas.height = h
+                context.drawImage(
+                    image, fitted.min[0], fitted.min[1], w, h,
+                    0, 0, w, h
+                )
+            },
+        ],
     )
     if (!referenceURL) {
         return light
@@ -126,17 +134,17 @@ export const inferTheme = async (wallpaperId: number): Promise<Theme> => {
     const img = new Image()
     await new Promise(r => {
         img.onload = r
-        img.src = referenceURL
+        img.src = imageStore.fetch(referenceURL[0])
     })
 
     const colorThief = new ColorThief()
     const colors = colorThief.getPalette(img, 3)
 
-    console.log(colors)
+    imageStore.release(referenceURL[0])
 
     return {
         colors: {
-            primary: colorToString(colors[2]),
+            primary: colorToString(colors[1]),
             secondary: colorToString(colors[2]),
             background: colorToString(colors[0]),
         },

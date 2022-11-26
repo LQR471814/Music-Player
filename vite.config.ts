@@ -1,9 +1,9 @@
-import { resolve } from "path"
+import { VitePWA } from "vite-plugin-pwa"
 import { defineConfig } from 'vite';
+import fs from 'fs';
+import { resolve } from "path"
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 import sveltePreprocess from 'svelte-preprocess';
-import fs from 'fs';
-import VitePWA from "vite-pwa"
 
 // import serviceWorker from "./plugins/service-worker"
 
@@ -36,11 +36,11 @@ export default defineConfig(({ mode }) => {
       }),
       // serviceWorker(),
       VitePWA({
-        // @ts-ignore
         registerType: "autoUpdate",
         includeAssets: [
           "assets/**/*",
           "backgrounds/*",
+          "icons/*",
           "favicon.png",
           "index.html",
         ],
@@ -49,6 +49,7 @@ export default defineConfig(({ mode }) => {
           short_name: "music",
           description: "a web-based music player",
           theme_color: "#ffffff",
+          background_color: "#ffffff",
           icons: [
             {
               src: "icons/android-chrome-192x192.png",
@@ -66,7 +67,9 @@ export default defineConfig(({ mode }) => {
               type: 'image/png',
               purpose: 'any maskable'
             }
-          ]
+          ],
+          display: "fullscreen",
+          start_url: "/index.html",
         }
       }),
     ]

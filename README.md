@@ -17,10 +17,10 @@ to generate such files, you should look into self signing with `openssl` or `xca
 
 - [x] dynamic themes on the client
 - [x] remove player jankiness
-- [ ] adaptive layouts
+- [x] adaptive layouts
     - [x] desktop layouts
-    - [ ] phone layouts
-    - [ ] everything in-between layouts
+    - [x] phone layouts
+    - [x] everything in-between layouts
 - [ ] editing
     - [ ] album names
     - [ ] track names

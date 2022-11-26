@@ -5,8 +5,10 @@ import { classList } from "@web-std/common/src/general";
 import { rotate } from "@web-std/svelte-common/src/transitions";
 import { store } from "~/store/state";
 import { fly } from "svelte/transition";
+import { staggeredFly } from "@web-std/svelte-common/src/general";
+import { orderedTracks } from "~/common/utils";
 
-import { Label } from "@web-std/form";
+import Label from "@web-std/form/src/Label.svelte";
 import AlbumIcon from "~/parts/AlbumIcon.svelte";
 import TrackChip from "~/parts/TrackChip.svelte";
 import Edit2Line from "~/icons/Edit2Line.svelte";
@@ -19,6 +21,8 @@ const selectedAlbum = store.select((s) =>
 </script>
 
 {#if $selectedAlbum}
+  {@const tracks = orderedTracks($selectedAlbum)}
+  {@const stagger = staggeredFly(tracks.length, {})}
   <div
     class={classList("flex flex-col h-full w-1/3", className)}
     transition:fly={{ x: 10, duration: 200 }}
@@ -32,8 +36,8 @@ const selectedAlbum = store.select((s) =>
       <Label preset="h1" className="text-start">{$selectedAlbum.title}</Label>
     </div>
     <div class="flex flex-col gap-4 p-8 overflow-y-auto">
-      {#each Object.values($selectedAlbum.tracks) as t, i}
-        <TrackChip track={t} index={i} />
+      {#each tracks as t, i}
+        <TrackChip index={i} track={t} flyParams={stagger(i)} />
       {/each}
       <button
         class={classList(

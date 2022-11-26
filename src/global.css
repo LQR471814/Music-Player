@@ -4,8 +4,7 @@
 
 @layer components {
   .interactive {
-    @apply transition-all ease-in-out border border-primary-clear bg-primary-clear
-      backdrop-blur-md shadow-xl hover:scale-[102%] active:scale-[98%];
+    @apply transition-all ease-in-out border border-primary-clear bg-primary-clear backdrop-blur-md shadow-xl hover:scale-[102%] active:scale-[98%];
   }
 
   .ease-out-backwards {
@@ -22,6 +21,7 @@
     left: 50%;
     transform: translateX(-50%);
   }
+
   .center-y {
     top: 50%;
     transform: translateY(-50%);
@@ -30,13 +30,14 @@
   .border-opacity-var {
     --tw-color-opacity: var(--border-opacity);
   }
+
   .bg-opacity-var {
     --tw-color-opacity: var(--bg-opacity);
   }
 }
 
 html {
-  height: calc(100% - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  height: calc(100% - env(safe-area-inset-top));
 
   background: var(--wallpaper);
   background-size: cover;

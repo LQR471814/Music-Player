@@ -1,15 +1,13 @@
 import { Dexie, Table } from "dexie"
-import { ImageSource, processImage } from "@web-std/common/src/images"
+import { ImageSource, processImage, resize } from "@web-std/common/src/images"
 
 const defaultsMap = ["1.jpg", "2.jpg"]
 
 export type Wallpaper = {
     id?: number
     fullsize: Uint8Array
-    paletteReference: string
+    paletteReference: Uint8Array
 }
-
-const resizeSize = 256
 
 class DB extends Dexie {
     wallpapers!: Table<Wallpaper>
@@ -39,25 +37,34 @@ class DB extends Dexie {
     }
 
     async processImage(source: ImageSource): Promise<Wallpaper | null> {
-        let imageBuffer = new Uint8Array()
-
-        const dataURL = await processImage(source, ({ buffer, image, context, canvas }) => {
-            imageBuffer = buffer
+        const resizeImage = (size: number, blur?: string) => (
+            { image, context, canvas }: {
+                image: HTMLImageElement,
+                context: CanvasRenderingContext2D,
+                canvas: HTMLCanvasElement
+            }
+        ) => {
             const aspectRatio = image.height / image.width
-            const width = (2 * resizeSize) / (aspectRatio + 1)
+            const width = (2 * size) / (aspectRatio + 1)
 
             canvas.width = width
             canvas.height = width * aspectRatio
 
+            context.filter = `blur(${blur})`
             context.drawImage(image, 0, 0, width, width * aspectRatio)
-        })
-        if (!dataURL) {
+        }
+
+        const buffers = await processImage(source, [
+            resizeImage(256),
+            resizeImage(1280, "4px"),
+        ])
+        if (!buffers) {
             return null
         }
 
         return {
-            fullsize: imageBuffer,
-            paletteReference: dataURL,
+            fullsize: buffers[1],
+            paletteReference: buffers[0],
         }
     }
 }

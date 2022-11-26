@@ -22,6 +22,16 @@ module.exports = {
       opacity: {
         "border": "var(--border-opacity)",
         "background": "var(--background-opacity)",
+      },
+      screens: {
+        'phone': '400px',
+        'xs': '480px'
+      },
+      spacing: {
+        'safe-left': "env(safe-area-inset-left)",
+        'safe-right': "env(safe-area-inset-right)",
+        'safe-top': "env(safe-area-inset-top)",
+        'safe-bottom': "env(safe-area-inset-bottom)",
       }
     },
   },

@@ -1,5 +1,5 @@
 <script lang="ts">
-import { Label } from "@web-std/form";
+import Label from "@web-std/form/src/Label.svelte";
 import { classList } from "@web-std/common/src/general";
 
 export let scale: "small" | "large" = "small";

@@ -2,18 +2,19 @@
 import { classList } from "@web-std/common/src/general";
 import { store } from "~/store/state";
 import TrackChip from "~/parts/TrackChip.svelte";
-import { Menu } from "@web-std/wrappers";
+import Menu from "@web-std/wrappers/src/Menu.svelte";
 import PlayLine from "~/icons/PlayLine.svelte";
 import CloseLine from "~/icons/CloseLine.svelte";
+import { staggeredFly } from "@web-std/svelte-common/src/general";
 
 const playlist = store.select((s) => s.playlist);
 let selected: number | undefined;
+
+$: stagger = staggeredFly($playlist.tracks.length, {});
 </script>
 
 <div
-  class={$playlist.tracks.length > 0
-    ? "sm:w-[360px] xl:w-sm p-8 border-primary"
-    : ""}
+  class="phone:w-full phone:max-w-none md:max-w-xs md:min-w-[280px] lg:max-w-sm p-8 border-primary"
 >
   <div class="flex flex-col gap-4">
     {#each $playlist.tracks as t, i}
@@ -53,6 +54,7 @@ let selected: number | undefined;
           index={i}
           selected={i === $playlist.position}
           noDisc
+          flyParams={stagger(i)}
         />
       </Menu>
     {/each}

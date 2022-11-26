@@ -1,9 +1,26 @@
 <script lang="ts">
-import { createEventDispatcher } from "svelte";
+import {
+  ComponentConstructorOptions,
+  createEventDispatcher,
+  SvelteComponentTyped,
+} from "svelte";
 import { fly, FlyParams } from "svelte/transition";
 import { twMerge } from "tailwind-merge";
 
+interface RequiredProps {
+  width?: number;
+  height?: number;
+  className?: string;
+}
+
+interface ComponentConstructor {
+  new (o: ComponentConstructorOptions): SvelteComponentTyped<RequiredProps>;
+}
+
 const dispatcher = createEventDispatcher<{ click: MouseEvent }>();
+
+export let icon: ComponentConstructor;
+export let size: number = 24;
 
 export let className = "";
 export let flyParams: FlyParams = { y: 10 };
@@ -24,5 +41,10 @@ export let disabled = false;
     dispatcher("click", e);
   }}
 >
-  <slot />
+  <svelte:component
+    this={icon}
+    width={size}
+    height={size}
+    className={disabled ? "fill-background" : ""}
+  />
 </button>
