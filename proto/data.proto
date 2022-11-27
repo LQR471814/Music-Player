@@ -16,7 +16,7 @@ enum Format {
 }
 
 message Picture {
-    bytes data = 1;
+    string url = 1;
     string mime = 2;
     string description = 3;
 }

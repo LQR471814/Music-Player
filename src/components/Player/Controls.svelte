@@ -7,7 +7,7 @@ import SkipForwardLine from "~/icons/SkipForwardLine.svelte";
 import ArrowLeftLine from "~/icons/ArrowLeftLine.svelte";
 import IconButton from "~/parts/IconButton.svelte";
 
-import { apiLocation } from "~/common/api";
+import { apiLocation, iconLocation } from "~/common/api";
 import { currentPlayingAlbum, currentPlayingTrack, store } from "~/store/state";
 import { controlPlay, safePadding } from "@web-std/svelte-common/src/actions";
 import { imageStore } from "@web-std/store/src/image";
@@ -15,15 +15,25 @@ import { useKey } from "@web-std/svelte-common/src/hooks";
 import Label from "@web-std/form/src/Label.svelte";
 import { carryOver } from "@web-std/common/src/general";
 import PlayListLine from "~/icons/PlayListLine.svelte";
+import {
+  fit,
+  height,
+  position,
+  processImageRaw,
+  width,
+} from "@web-std/common/src/images";
 
 export let showPlaylist = false;
 
 const playlist = store.select((s) => s.playlist);
-const playlistHidden = store.select((s) => s.playlist.hidden)
-const playlistEmpty = store.select((s) => s.playlist.tracks.length === 0)
+const playlistHidden = store.select((s) => s.playlist.hidden);
+const playlistEmpty = store.select((s) => s.playlist.tracks.length === 0);
 const album = store.select(currentPlayingAlbum);
 const track = store.select(currentPlayingTrack);
 const playing = store.select((s) => s.playlist.playing);
+
+$: hasNext = $playlist.position < $playlist.tracks.length - 1;
+$: hasPrevious = $playlist.position > 0;
 
 const changeTrack = (position: number) => {
   _elapsed = 0;
@@ -34,17 +44,107 @@ const changeTrack = (position: number) => {
   store.actions.playTrack(position);
 };
 
-navigator.mediaSession.setActionHandler("play", () => {
-  store.actions.togglePlaying(true);
-});
-navigator.mediaSession.setActionHandler("pause", () => {
-  store.actions.togglePlaying(false);
-});
+$: {
+  if (!$playlistEmpty) {
+    navigator.mediaSession.setActionHandler("play", () => {
+      store.actions.togglePlaying(true);
+    });
+    navigator.mediaSession.setActionHandler("pause", () => {
+      store.actions.togglePlaying(false);
+    });
+  } else {
+    navigator.mediaSession.setActionHandler("play", null);
+    navigator.mediaSession.setActionHandler("pause", null);
+  }
+}
+
 navigator.mediaSession.setActionHandler("nexttrack", () => {
   changeTrack($playlist.position + 1);
 });
 navigator.mediaSession.setActionHandler("previoustrack", () => {
   changeTrack($playlist.position - 1);
+});
+
+track.subscribe((t) => {
+  if (!t) return;
+
+  // const getArtwork = async () => {
+  //   if (!$album?.cover) {
+  //     return undefined;
+  //   }
+
+  //   const resized = await processImageRaw($album?.cover.data, [
+  //     ({ image, context, canvas }) => {
+  //       const coverWidth = 256;
+  //       const fitted = position(
+  //         [0.5, 0.5],
+  //         fit(
+  //           "contain",
+  //           {
+  //             min: [0, 0],
+  //             max: [coverWidth, coverWidth],
+  //           },
+  //           {
+  //             min: [0, 0],
+  //             max: [image.width, image.height],
+  //           }
+  //         ),
+  //         {
+  //           min: [0, 0],
+  //           max: [image.width, image.height],
+  //         }
+  //       );
+
+  //       const w = width(fitted);
+  //       const h = height(fitted);
+
+  //       canvas.width = coverWidth;
+  //       canvas.height = coverWidth;
+
+  //       context.drawImage(
+  //         image,
+  //         fitted.min[0],
+  //         fitted.min[1],
+  //         w,
+  //         h,
+  //         0,
+  //         0,
+  //         coverWidth,
+  //         coverWidth
+  //       );
+  //     },
+  //   ]);
+  //   if (!resized) {
+  //     return undefined;
+  //   }
+
+  //   console.log(resized[0])
+
+  //   return [
+  //     {
+  //       src: resized[0],
+  //       sizes: "256x256",
+  //       type: "image/jpeg",
+  //     },
+  //   ];
+  //   // return [
+  //   //   {
+  //   //     src: "https://localhost:8080/icons/android-chrome-192x192.jpeg",
+  //   //     sizes: "192x192",
+  //   //     type: "image/jpeg",
+  //   //   },
+  //   // ];
+  // };
+  // getArtwork().then((a) => {
+  const iconURL = $album ? iconLocation($album) : undefined;
+  console.log(iconURL);
+  navigator.mediaSession.metadata = new MediaMetadata({
+    title: $track?.title ?? "no title",
+    album: $album?.title ?? "unknown album",
+    artist: $track?.artist ?? "unknown artist",
+    artwork: iconURL ? [{ src: iconURL }] : undefined,
+  });
+  // });
 });
 
 useKey(" ", () => store.actions.togglePlaying());
@@ -73,22 +173,6 @@ $: timestamp = (() => {
 
 $: {
   if (_player) {
-    if ($playing) {
-      navigator.mediaSession.metadata = new MediaMetadata({
-        title: $track?.title ?? "no title",
-        album: $album?.title ?? "unknown album",
-        artist: $track?.artist ?? "unknown artist",
-        artwork: $album?.cover
-          ? [
-              {
-                src: imageStore.fetch($album.cover.data),
-                sizes: "96x96",
-                type: "image/jpeg",
-              },
-            ]
-          : undefined,
-      });
-    }
     _player.ontimeupdate = () => {
       if (!_player || _player.seeking || _dragging) return;
       _elapsed = _player.currentTime / _player.duration;
@@ -107,7 +191,7 @@ $: {
     autoplay
     src={(() => {
       const url = new URL(apiLocation);
-      url.pathname = $track.path;
+      url.pathname = `/audio/${$track.path}`;
       return url.toString();
     })()}
     use:controlPlay={{ store: playing }}
@@ -142,20 +226,19 @@ $: {
     <Label className="absolute left-0" preset="h2">{timestamp}</Label>
     <IconButton
       icon={SkipBackLine}
-      disabled={$playlist.position === 0}
+      disabled={!hasPrevious || $playlistEmpty}
       on:click={() => changeTrack($playlist.position - 1)}
       flyParams={{ duration: 0, delay: 0 }}
     />
     <IconButton
       icon={!$playing ? PlayLine : PauseLine}
       on:click={() => store.actions.togglePlaying()}
-      disabled={$playlist.tracks.length === 0}
+      disabled={$playlistEmpty}
       flyParams={{ duration: 0, delay: 0 }}
     />
     <IconButton
       icon={SkipForwardLine}
-      disabled={$playlist.position === $playlist.tracks.length - 1 ||
-        $playlist.tracks.length === 0}
+      disabled={!hasNext || $playlistEmpty}
       on:click={() => changeTrack($playlist.position + 1)}
       flyParams={{ duration: 0, delay: 0 }}
     />

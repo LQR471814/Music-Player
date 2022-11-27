@@ -2,11 +2,13 @@ package main
 
 import (
 	"log"
+	"mime"
 	"net"
 	"net/http"
 
 	"github.com/LQR471814/music-player/server/api"
 	"github.com/LQR471814/music-player/server/env"
+	"github.com/LQR471814/music-player/server/logging"
 
 	"github.com/improbable-eng/grpc-web/go/grpcweb"
 	"github.com/rs/cors"
@@ -14,9 +16,14 @@ import (
 )
 
 func main() {
+	err := mime.AddExtensionType(".js", "application/javascript")
+	if err != nil {
+		logging.Error.Fatal(err)
+	}
+
 	listener, err := net.Listen("tcp", env.Options.Address)
 	if err != nil {
-		log.Fatal(err)
+		logging.Error.Fatal(err)
 	}
 
 	grpcServer := grpc.NewServer()
@@ -34,7 +41,7 @@ func main() {
 
 	// albums, err := PullAlbums()
 	// if err != nil {
-	// 	log.Fatal(err)
+	// 	logging.Error.Fatal(err)
 	// }
 	// for i, a := range albums {
 	// 	log.Printf("%d. %s - %s ===================\n", i, a.AlbumArtist, a.Title)
@@ -44,12 +51,14 @@ func main() {
 	// }
 
 	log.Printf("Serving on %s...", listener.Addr().String())
-	// http.Serve(listener, cors.AllowAll().Handler(SplitGRPCTraffic(
-	// 	http.FileServer(http.Dir(env.Options.AudioDirectory)),
-	// 	wrappedServer,
-	// )))
+
+	fileMux := &http.ServeMux{}
+	HandleSubdirectory(fileMux, "/audio")
+	HandleSubdirectory(fileMux, "/covers")
+	fileMux.Handle("/", http.FileServer(http.Dir("static")))
+
 	http.ServeTLS(listener, cors.AllowAll().Handler(SplitGRPCTraffic(
-		http.FileServer(http.Dir(env.Options.AudioDirectory)),
+		fileMux,
 		wrappedServer,
 	)), "host-crt.pem", "host-key.pem")
 }

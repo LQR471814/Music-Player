@@ -12,6 +12,7 @@ import AlbumCard from "./AlbumOverlay/AlbumCard.svelte";
 import { orderedTracks } from "~/common/utils";
 import { staggeredFly } from "@web-std/svelte-common/src/general";
 import { layoutType, LayoutTypes } from "~/store/layout";
+import { clickOutside } from "@web-std/svelte-common/src/actions";
 
 const selectedAlbum = store.select(currentAlbumSelector);
 
@@ -47,10 +48,16 @@ useClose(() => {
         "flex flex-row gap-8 justify-center",
         "overflow-y-auto absolute overlay z-30"
       )}
-      on:click={() => {
-        store.actions.selectAlbum(undefined);
+      use:clickOutside={{
+        axis: (e) => e.children[0],
+        callback: () => {
+          store.actions.selectAlbum(undefined);
+        },
       }}
     >
+      <!-- on:click={() => {
+        store.actions.selectAlbum(undefined);
+      }} -->
       <!-- Album Info -->
       <div class="flex items-center h-full sticky top-0 z-40 max-w-xl">
         <AlbumCard />

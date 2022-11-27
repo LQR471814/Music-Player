@@ -1,7 +1,8 @@
 SHELL = /bin/bash
 
 PROTO = $(wildcard proto/*.proto)
-NPX = pnpm exec
+NPM = pnpm
+NPX = $(NPM) exec
 CRT_NAME = host
 SERVER_IP = 192.168.1.178
 
@@ -22,3 +23,8 @@ protobuf: src/proto server/api
 		$(PROTO)
 	protoc -I=proto --go_out=. --go-grpc_out=. $(PROTO)
 	node scripts/patchproto.js src/proto
+
+static:
+	$(NPM) run build
+	rm -rf server/static
+	cp -r build server/static

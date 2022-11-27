@@ -1,24 +1,29 @@
 <script lang="ts">
 import type { Album } from "~/proto/data";
-import { Image } from "@web-std/utility";
 import AlbumLine from "~/icons/AlbumLine.svelte";
 import AlbumFill from "~/icons/AlbumFill.svelte";
+import { styleList } from "@web-std/common/src/general";
+import { iconLocation } from "~/common/api";
 
 export let album: Album;
 export let size = 56;
-export let className = "shadow-lg rounded-xl"
+export let className = "shadow-lg rounded-xl";
+
+$: src = iconLocation(album);
 </script>
 
-{#if album.cover}
-    <Image
-        className={className}
-        image={album.cover.data}
-        alt={album.cover.description}
-        minLength={size}
-        maxLength={size}
-    />
+{#if src && album.cover}
+  <img
+    class={className}
+    {src}
+    alt={album.cover.description}
+    style={styleList({
+      objectFit: "contain",
+      width: `${size}px`,
+    })}
+  />
 {:else if Object.keys(album.tracks).length === 1}
-    <AlbumLine width={size} height={size} />
+  <AlbumLine width={size} height={size} />
 {:else}
-    <AlbumFill width={size} height={size} />
+  <AlbumFill width={size} height={size} />
 {/if}

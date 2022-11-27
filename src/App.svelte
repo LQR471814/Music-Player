@@ -8,7 +8,6 @@ import { store } from "./store/state";
 import { setContext } from "svelte";
 import { iconKey, Context as IconContext } from "./icons/icon-context";
 import { inferTheme, dark, light, loadTheme } from "./store/theme";
-import { db } from "./store/db";
 import { classList } from "@web-std/common/src/general";
 
 import Library from "~/components/Library.svelte";
@@ -22,9 +21,9 @@ import DynamicHeader, {
   Head as Header,
   Foot as Footer,
 } from "@web-std/wrappers/src/DynamicHeader.svelte";
-import { windowSize } from "@web-std/store/src/window";
 import { layoutType, LayoutTypes } from "./store/layout";
 import type { StoreValue } from "./common/utils";
+import { fade } from "svelte/transition";
 
 setContext<IconContext>(iconKey, {
   className: "w-14 h-14 svg-shadow",
@@ -79,8 +78,16 @@ layoutType.subscribe((l) => (layout = l));
         <Library />
       </Column>
       {#if !$playlistEmpty && !$playlistHidden}
-        <Column className="absolute top-0 backdrop-blur-sm transition-opacity w-full">
-          <Playlist />
+        <Column
+          className="absolute top-0 transition-none w-full h-full"
+          paddingClass="h-full"
+        >
+          <div
+            class="backdrop-blur-sm w-full h-full"
+            transition:fade={{ duration: 200 }}
+          >
+            <Playlist />
+          </div>
         </Column>
       {/if}
     {/if}
@@ -89,7 +96,7 @@ layoutType.subscribe((l) => (layout = l));
     <Header
       className={classList(
         "z-20 transition-all border-b",
-        !$playlistEmpty ? "border-primary-clear" : "border-transparent",
+        !$playlistEmpty && layout === LayoutTypes.DESKTOP ? "border-primary-clear" : "border-transparent",
         layout <= LayoutTypes.TABLET ? "rounded-b-[2rem]" : ""
       )}
       coverClass="backdrop-blur-sm border-primary-clear"
@@ -107,7 +114,7 @@ layoutType.subscribe((l) => (layout = l));
       <Footer
         className={classList(
           "transition-all border-t",
-          !$playlistEmpty ? "border-primary-clear" : "border-transparent",
+          !$playlistEmpty && layout === LayoutTypes.DESKTOP ? "border-primary-clear" : "border-transparent",
           layout <= LayoutTypes.TABLET ? "rounded-t-[2rem]" : ""
         )}
         coverClass="backdrop-blur-sm border-primary-clear"

@@ -30,3 +30,7 @@ func SplitGRPCTraffic(fallback http.Handler, grpcHandler http.Handler) http.Hand
 		},
 	)
 }
+
+func HandleSubdirectory(mux *http.ServeMux, dir string) {
+	mux.Handle(dir+"/", http.StripPrefix(dir, http.FileServer(http.Dir("."+dir))))
+}

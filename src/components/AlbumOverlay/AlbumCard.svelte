@@ -27,12 +27,14 @@ $: singleKey = albumKey(albumId, "single");
 </script>
 
 {#if $selectedAlbum}
+  <!-- svelte-ignore a11y-click-events-have-key-events -->
   <div
     class={classList(
       "flex items-center gap-4 sm:gap-8 backdrop-blur-md p-6 sm:p-8 rounded-3xl",
       "border border-primary-clear border-opacity-20"
     )}
     transition:fly={{ y: 20 }}
+    on:click
   >
     <div
       class="w-fit h-fit"

@@ -41,7 +41,7 @@ export default defineConfig(({ mode }) => {
           "assets/**/*",
           "backgrounds/*",
           "icons/*",
-          "favicon.png",
+          "favicon.ico",
           "index.html",
         ],
         manifest: {
@@ -62,7 +62,7 @@ export default defineConfig(({ mode }) => {
               type: "image/png",
             },
             {
-              src: 'icons/android-chrome-512x512.png',
+              src: "icons/android-chrome-512x512.png",
               sizes: '512x512',
               type: 'image/png',
               purpose: 'any maskable'

@@ -1,6 +1,7 @@
 package env
 
 import (
+	"os"
 	"strings"
 
 	"github.com/LQR471814/music-player/server/logging"
@@ -10,6 +11,7 @@ import (
 
 type Flags struct {
 	AudioDirectory    string //the directory for storing audio content
+	IconDirectory     string //the directory for storing icons
 	Address           string //the address to host on
 	IndexName         string //the name for the index file
 	Reset             bool   //reset all indexes
@@ -21,6 +23,7 @@ var Options = Flags{}
 func init() {
 	defaultConfig := Flags{
 		AudioDirectory:    "audio",
+		IconDirectory:     "covers",
 		Address:           ":6325",
 		IndexName:         "index.pb",
 		Reset:             false,
@@ -40,4 +43,17 @@ func init() {
 	}
 
 	Options = conf.GetConf()
+
+	if Options.Reset {
+		os.RemoveAll(Options.IconDirectory)
+	}
+
+	err = os.MkdirAll(Options.AudioDirectory, 0700)
+	if !os.IsExist(err) && err != nil {
+		logging.Error.Fatal(err)
+	}
+	err = os.MkdirAll(Options.IconDirectory, 0700)
+	if !os.IsExist(err) && err != nil {
+		logging.Error.Fatal(err)
+	}
 }

@@ -1,6 +1,12 @@
 package main
 
 import (
+	"bytes"
+	"fmt"
+	"image"
+	_ "image/gif"
+	_ "image/jpeg"
+	_ "image/png"
 	"io/ioutil"
 	"mime"
 	"os"
@@ -17,6 +23,7 @@ import (
 	"github.com/LQR471814/music-player/server/index"
 	"github.com/LQR471814/music-player/server/logging"
 	"github.com/LQR471814/music-player/server/utils"
+	"github.com/disintegration/imaging"
 
 	"github.com/dhowden/tag"
 	"github.com/google/uuid"
@@ -55,6 +62,24 @@ func RemoveExt(filename string) string {
 		return split[0]
 	}
 	return strings.Join(split[:len(split)-1], ".")
+}
+
+func IconLocation(album *api.Album) string {
+	return fmt.Sprintf("%s/%s.jpg", env.Options.IconDirectory, album.Id)
+}
+
+func SaveIcon(byteSlice []byte, album *api.Album) (string, error) {
+	buffer := bytes.NewBuffer(byteSlice)
+
+	img, _, err := image.Decode(buffer)
+	if err != nil {
+		return "", err
+	}
+	resized := imaging.Fill(img, 384, 384, imaging.Center, imaging.Linear)
+
+	location := IconLocation(album)
+	err = imaging.Save(resized, location)
+	return location, err
 }
 
 func InferTrack(fileInfo os.FileInfo, t *api.Track) {
@@ -119,17 +144,21 @@ func InferCover(path string, a *api.Album) {
 				logging.Warn.Println(err)
 				return
 			}
-
-			data := make([]byte, 0)
-			_, err = f.Read(data)
+			data, err := ioutil.ReadAll(f)
 			if err != nil {
 				logging.Warn.Println(err)
 				return
 			}
 
+			mimetype := mime.TypeByExtension(filepath.Ext(e.Name()))
+			location, err := SaveIcon(data, a)
+			if err != nil {
+				logging.Warn.Println(err)
+				return
+			}
 			a.Cover = &api.Picture{
-				Mime: mime.TypeByExtension(filepath.Ext(e.Name())),
-				Data: data,
+				Url:  location,
+				Mime: mimetype,
 			}
 			return
 		}
@@ -185,11 +214,18 @@ func HandleTrack(album *api.Album, path string) {
 	if m != nil {
 		album.Title = utils.Fallback([]string{m.Album(), album.Title})
 		album.AlbumArtist = utils.Fallback([]string{m.AlbumArtist(), album.AlbumArtist})
-		if m.Picture() != nil && len(m.Picture().Data) > 0 {
-			album.Cover = &api.Picture{
-				Data:        m.Picture().Data,
-				Mime:        m.Picture().MIMEType,
-				Description: m.Picture().Description,
+
+		_, err := os.Stat(IconLocation(album))
+		if m.Picture() != nil && len(m.Picture().Data) > 0 && os.IsNotExist(err) && album.Cover == nil {
+			location, err := SaveIcon(m.Picture().Data, album)
+			if err == nil {
+				album.Cover = &api.Picture{
+					Url:         location,
+					Mime:        m.Picture().MIMEType,
+					Description: m.Picture().Description,
+				}
+			} else {
+				logging.Warn.Println(err)
 			}
 		}
 		disc, _ := m.Disc()
